@@ -11,6 +11,7 @@ This is a tiny static v0.1 dashboard for reading Xinchao Dashboard Snapshot data
 - all drive dimensions
 - runtime window count
 - enabled capabilities
+- wake-style semantic interaction buttons
 - automatic refresh every 8 seconds
 
 ## How to use

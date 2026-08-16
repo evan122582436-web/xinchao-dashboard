@@ -13,6 +13,7 @@ const els = {
   allDrives: document.querySelector('#all-drives'),
   capabilityCount: document.querySelector('#capability-count'),
   capabilities: document.querySelector('#capabilities'),
+  interactionButtons: document.querySelectorAll('.interaction-button'),
 };
 
 let sessionToken = '';
@@ -158,6 +159,32 @@ async function fetchSnapshot() {
   return response.json();
 }
 
+async function sendInteraction(interactionType) {
+  if (!sessionToken) {
+    throw new Error('请先连接面板。');
+  }
+
+  const baseUrl = normalizeBaseUrl(els.baseUrl.value);
+  const eventId = `dashboard-${interactionType}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const response = await fetch(`${baseUrl}/dashboard/api/interactions`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      event_id: eventId,
+      interaction_type: interactionType,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`互动提交失败：HTTP ${response.status}`);
+  }
+
+  await response.json();
+}
+
 async function refreshSnapshot() {
   const snapshot = await fetchSnapshot();
   renderSnapshot(snapshot);
@@ -184,4 +211,20 @@ async function connect() {
 els.connectButton.addEventListener('click', connect);
 els.refreshButton.addEventListener('click', () => {
   refreshSnapshot().catch((error) => setStatus(error.message, 'error'));
+});
+
+els.interactionButtons.forEach((button) => {
+  button.addEventListener('click', async () => {
+    try {
+      button.disabled = true;
+      setStatus('正在提交互动');
+      await sendInteraction(button.dataset.type);
+      await refreshSnapshot();
+      setStatus('互动已写入', 'ok');
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  });
 });
