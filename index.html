@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>澄 · 心潮面板</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Xinchao Dashboard</p>
+          <h1 id="page-title">澄的心潮面板</h1>
+          <p class="subtitle">读取 Dashboard Snapshot，显示当前意识、疲劳、驱力和运行状态。</p>
+        </div>
+        <div class="status-pill" id="connection-status">未连接</div>
+      </section>
+
+      <section class="panel login-panel" aria-label="连接设置">
+        <label>
+          心潮地址
+          <input id="base-url" type="url" value="https://xinchao.cheng128.com" autocomplete="off" />
+        </label>
+        <label>
+          Dashboard Token
+          <input id="access-token" type="password" placeholder="只在本页换取短期会话，不写入仓库" autocomplete="off" />
+        </label>
+        <div class="actions">
+          <button id="connect-button" type="button">连接面板</button>
+          <button id="refresh-button" type="button" disabled>刷新一次</button>
+        </div>
+        <p class="hint">若部署成跨源网页，需要心潮服务端允许本页面来源，并支持 <code>mode: "header"</code> 会话。</p>
+      </section>
+
+      <section class="grid summary-grid" aria-label="状态概览">
+        <article class="metric">
+          <span>意识</span>
+          <strong id="consciousness">--</strong>
+        </article>
+        <article class="metric">
+          <span>疲劳</span>
+          <strong id="fatigue">--</strong>
+        </article>
+        <article class="metric">
+          <span>窗口</span>
+          <strong id="windows">--</strong>
+        </article>
+        <article class="metric">
+          <span>最后更新</span>
+          <strong id="updated-at">--</strong>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>当前驱力</h2>
+            <span id="top-count">0 项</span>
+          </div>
+          <div class="drive-list" id="top-drives"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>十二维</h2>
+            <span>Snapshot</span>
+          </div>
+          <div class="drive-list compact" id="all-drives"></div>
+        </article>
+
+        <article class="panel wide">
+          <div class="panel-heading">
+            <h2>运行能力</h2>
+            <span id="capability-count">0 项</span>
+          </div>
+          <div class="chips" id="capabilities"></div>
+        </article>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
