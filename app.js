@@ -14,10 +14,19 @@ const els = {
   capabilityCount: document.querySelector('#capability-count'),
   capabilities: document.querySelector('#capabilities'),
   interactionButtons: document.querySelectorAll('.interaction-button'),
+  interactionHistory: document.querySelector('#interaction-history'),
 };
 
 let sessionToken = '';
 let refreshTimer = null;
+
+const historyStorageKey = 'xinchao-dashboard-interaction-history';
+const interactionLabels = {
+  companionship: '陪他说句话',
+  affection: '关心一下',
+  intimacy: '贴贴',
+  sharing: '分享',
+};
 
 function normalizeBaseUrl(value) {
   return value.trim().replace(/\/$/, '');
@@ -38,6 +47,71 @@ function formatTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleTimeString('zh-CN', { hour12: false });
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '刚刚';
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
+function readInteractionHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(historyStorageKey) ?? '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveInteractionHistory(history) {
+  localStorage.setItem(historyStorageKey, JSON.stringify(history.slice(0, 5)));
+}
+
+function renderInteractionHistory() {
+  const history = readInteractionHistory();
+  els.interactionHistory.replaceChildren();
+
+  if (history.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = '还没有互动记录。';
+    els.interactionHistory.append(empty);
+    return;
+  }
+
+  history.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+
+    const label = document.createElement('strong');
+    label.textContent = item.label ?? interactionLabels[item.type] ?? item.type ?? '互动';
+
+    const time = document.createElement('span');
+    time.textContent = formatDateTime(item.at);
+
+    row.append(label, time);
+    els.interactionHistory.append(row);
+  });
+}
+
+function recordInteraction(interactionType) {
+  const history = readInteractionHistory();
+  const label = interactionLabels[interactionType] ?? interactionType;
+  history.unshift({
+    type: interactionType,
+    label,
+    at: new Date().toISOString(),
+  });
+  saveInteractionHistory(history);
+  renderInteractionHistory();
 }
 
 function percentOf(drive) {
@@ -219,6 +293,7 @@ els.interactionButtons.forEach((button) => {
       button.disabled = true;
       setStatus('正在提交互动');
       await sendInteraction(button.dataset.type);
+      recordInteraction(button.dataset.type);
       await refreshSnapshot();
       setStatus('互动已写入', 'ok');
     } catch (error) {
@@ -228,3 +303,5 @@ els.interactionButtons.forEach((button) => {
     }
   });
 });
+
+renderInteractionHistory();
