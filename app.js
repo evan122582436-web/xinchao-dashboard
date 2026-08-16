@@ -15,17 +15,24 @@ const els = {
   capabilities: document.querySelector('#capabilities'),
   interactionButtons: document.querySelectorAll('.interaction-button'),
   interactionHistory: document.querySelector('#interaction-history'),
+  autoWakeToggle: document.querySelector('#auto-wake-toggle'),
+  autoWakeStatus: document.querySelector('#auto-wake-status'),
 };
 
 let sessionToken = '';
 let refreshTimer = null;
+let autoWakeInFlight = false;
 
 const historyStorageKey = 'xinchao-dashboard-interaction-history';
+const autoWakeStorageKey = 'xinchao-dashboard-auto-wake-enabled';
+const autoWakeLastStorageKey = 'xinchao-dashboard-auto-wake-last-at';
+const autoWakeCooldownMs = 10 * 60 * 1000;
 const interactionLabels = {
   companionship: '陪他说句话',
   affection: '关心一下',
   intimacy: '贴贴',
   sharing: '分享',
+  autoWake: '自动轻唤醒',
 };
 
 function normalizeBaseUrl(value) {
@@ -114,6 +121,36 @@ function recordInteraction(interactionType) {
   renderInteractionHistory();
 }
 
+function isAutoWakeEnabled() {
+  return localStorage.getItem(autoWakeStorageKey) === 'true';
+}
+
+function setAutoWakeEnabled(enabled) {
+  localStorage.setItem(autoWakeStorageKey, String(enabled));
+  renderAutoWake();
+}
+
+function getAutoWakeLastAt() {
+  const value = Number(localStorage.getItem(autoWakeLastStorageKey) ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function setAutoWakeLastAt(value) {
+  localStorage.setItem(autoWakeLastStorageKey, String(value));
+}
+
+function renderAutoWake() {
+  const enabled = isAutoWakeEnabled();
+  els.autoWakeToggle.textContent = `自动轻唤醒：${enabled ? '开' : '关'}`;
+  els.autoWakeToggle.setAttribute('aria-pressed', String(enabled));
+  els.autoWakeToggle.classList.toggle('active', enabled);
+
+  const lastAt = getAutoWakeLastAt();
+  els.autoWakeStatus.textContent = lastAt
+    ? `上次自动唤醒：${formatDateTime(lastAt)}`
+    : '只在本浏览器生效';
+}
+
 function percentOf(drive) {
   if (typeof drive.percent === 'number') return Math.max(0, Math.min(100, drive.percent));
   if (typeof drive.value === 'number') return Math.max(0, Math.min(100, drive.value * 100));
@@ -194,6 +231,10 @@ function renderSnapshot(snapshot) {
   renderCapabilities(snapshot.capabilities);
 }
 
+function getConsciousness(snapshot) {
+  return snapshot.runtime?.consciousness ?? snapshot.consciousness ?? '';
+}
+
 async function startSession() {
   const baseUrl = normalizeBaseUrl(els.baseUrl.value);
   const accessToken = els.accessToken.value.trim();
@@ -259,10 +300,34 @@ async function sendInteraction(interactionType) {
   await response.json();
 }
 
+async function maybeAutoWake(snapshot) {
+  if (!isAutoWakeEnabled() || autoWakeInFlight || !sessionToken) return;
+  if (String(getConsciousness(snapshot)).toLowerCase() !== 'sleep') return;
+
+  const now = Date.now();
+  const lastAt = getAutoWakeLastAt();
+  if (now - lastAt < autoWakeCooldownMs) return;
+
+  autoWakeInFlight = true;
+  try {
+    setStatus('自动轻唤醒中');
+    await sendInteraction('companionship');
+    setAutoWakeLastAt(now);
+    recordInteraction('autoWake');
+    renderAutoWake();
+    setStatus('自动轻唤醒已写入', 'ok');
+  } catch (error) {
+    setStatus(error.message, 'error');
+  } finally {
+    autoWakeInFlight = false;
+  }
+}
+
 async function refreshSnapshot() {
   const snapshot = await fetchSnapshot();
   renderSnapshot(snapshot);
   setStatus('已连接', 'ok');
+  await maybeAutoWake(snapshot);
 }
 
 async function connect() {
@@ -287,6 +352,10 @@ els.refreshButton.addEventListener('click', () => {
   refreshSnapshot().catch((error) => setStatus(error.message, 'error'));
 });
 
+els.autoWakeToggle.addEventListener('click', () => {
+  setAutoWakeEnabled(!isAutoWakeEnabled());
+});
+
 els.interactionButtons.forEach((button) => {
   button.addEventListener('click', async () => {
     try {
@@ -305,3 +374,4 @@ els.interactionButtons.forEach((button) => {
 });
 
 renderInteractionHistory();
+renderAutoWake();

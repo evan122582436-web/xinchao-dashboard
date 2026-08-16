@@ -139,6 +139,33 @@ button,
   box-shadow: 0 10px 28px rgba(31, 157, 145, 0.12);
 }
 
+.automation-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.automation-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+#auto-wake-toggle {
+  background: var(--card-strong);
+  color: var(--accent-deep);
+}
+
+#auto-wake-toggle.active {
+  background: var(--accent);
+  color: white;
+}
+
 .history-panel {
   margin-bottom: 16px;
 }
@@ -363,6 +390,12 @@ code {
   }
 
   .interaction-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .automation-panel,
+  .automation-control {
     align-items: flex-start;
     flex-direction: column;
   }

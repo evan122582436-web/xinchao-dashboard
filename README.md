@@ -12,6 +12,7 @@ This is a tiny static v0.1 dashboard for reading Xinchao Dashboard Snapshot data
 - runtime window count
 - enabled capabilities
 - wake-style semantic interaction buttons
+- optional auto wake when consciousness is `sleep`
 - automatic refresh every 8 seconds
 
 ## How to use
