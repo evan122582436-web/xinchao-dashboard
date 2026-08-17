@@ -245,7 +245,13 @@ function isSleeping(value) {
 
 function formatWindowValue(snapshot) {
   const runtime = snapshot.runtime ?? {};
-  const explicitCount = runtime.activeWindows ?? runtime.windowCount ?? snapshot.activeWindows ?? snapshot.windowCount;
+  const explicitCount =
+    runtime.activeSessions ??
+    runtime.activeWindows ??
+    runtime.windowCount ??
+    snapshot.activeSessions ??
+    snapshot.activeWindows ??
+    snapshot.windowCount;
 
   if (typeof explicitCount === 'number') return String(explicitCount);
   if (typeof explicitCount === 'string' && explicitCount.trim()) return explicitCount;
