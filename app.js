@@ -222,7 +222,7 @@ function renderSnapshot(snapshot) {
 
   els.consciousness.textContent = runtime.consciousness ?? snapshot.consciousness ?? '--';
   els.fatigue.textContent = formatNumber(runtime.fatigue ?? snapshot.fatigue);
-  els.windows.textContent = runtime.activeWindows ?? runtime.windowCount ?? '--';
+  els.windows.textContent = formatWindowValue(snapshot);
   els.updatedAt.textContent = formatTime(snapshot.generatedAt ?? runtime.lastHeartbeatAt);
   els.topCount.textContent = `${topDrives.length} 项`;
 
@@ -233,6 +233,32 @@ function renderSnapshot(snapshot) {
 
 function getConsciousness(snapshot) {
   return snapshot.runtime?.consciousness ?? snapshot.consciousness ?? '';
+}
+
+function normalizeConsciousness(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function isSleeping(value) {
+  return ['sleep', 'sleeping', 'asleep'].includes(normalizeConsciousness(value));
+}
+
+function formatWindowValue(snapshot) {
+  const runtime = snapshot.runtime ?? {};
+  const explicitCount = runtime.activeWindows ?? runtime.windowCount ?? snapshot.activeWindows ?? snapshot.windowCount;
+
+  if (typeof explicitCount === 'number') return String(explicitCount);
+  if (typeof explicitCount === 'string' && explicitCount.trim()) return explicitCount;
+
+  const sessionId =
+    runtime.sessionId ??
+    runtime.session_id ??
+    snapshot.sessionId ??
+    snapshot.session_id ??
+    snapshot.session?.id ??
+    snapshot.session?.sessionId;
+
+  return sessionId ? '1 个' : '未上报';
 }
 
 async function startSession() {
@@ -302,7 +328,7 @@ async function sendInteraction(interactionType) {
 
 async function maybeAutoWake(snapshot) {
   if (!isAutoWakeEnabled() || autoWakeInFlight || !sessionToken) return;
-  if (String(getConsciousness(snapshot)).toLowerCase() !== 'sleep') return;
+  if (!isSleeping(getConsciousness(snapshot))) return;
 
   const now = Date.now();
   const lastAt = getAutoWakeLastAt();
