@@ -8,6 +8,8 @@ const els = {
   fatigue: document.querySelector('#fatigue'),
   windows: document.querySelector('#windows'),
   updatedAt: document.querySelector('#updated-at'),
+  sessionUpdatedAt: document.querySelector('#session-updated-at'),
+  sessionMetrics: document.querySelector('#session-metrics'),
   topCount: document.querySelector('#top-count'),
   topDrives: document.querySelector('#top-drives'),
   allDrives: document.querySelector('#all-drives'),
@@ -33,6 +35,13 @@ const interactionLabels = {
   intimacy: '贴贴',
   sharing: '分享',
   autoWake: '自动轻唤醒',
+};
+const sessionMetricLabels = {
+  tone: '语气',
+  warmth: '温度',
+  tension: '紧张',
+  attention: '注意',
+  confidence: '信心',
 };
 
 function normalizeBaseUrl(value) {
@@ -215,6 +224,60 @@ function renderCapabilities(capabilities) {
   });
 }
 
+function formatSessionMetric(key, value) {
+  if (key === 'tone') return value ? String(value) : '--';
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '--';
+  return `${Math.round(Math.max(0, Math.min(1, number)) * 100)}%`;
+}
+
+function sessionPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.max(0, Math.min(100, number * 100));
+}
+
+function renderSession(session) {
+  els.sessionMetrics.replaceChildren();
+
+  if (!session || typeof session !== 'object') {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = '当前窗口没有上报情绪细节。';
+    els.sessionMetrics.append(empty);
+    els.sessionUpdatedAt.textContent = '未上报';
+    return;
+  }
+
+  els.sessionUpdatedAt.textContent = session.updatedAt ? `更新于 ${formatTime(session.updatedAt)}` : '已上报';
+
+  Object.entries(sessionMetricLabels).forEach(([key, labelText]) => {
+    const item = document.createElement('div');
+    item.className = key === 'tone' ? 'session-item tone' : 'session-item';
+
+    const label = document.createElement('span');
+    label.textContent = labelText;
+
+    const value = document.createElement('strong');
+    value.textContent = formatSessionMetric(key, session[key]);
+
+    item.append(label, value);
+
+    if (key !== 'tone') {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+
+      const fill = document.createElement('span');
+      fill.style.setProperty('--value', `${sessionPercent(session[key])}%`);
+
+      bar.append(fill);
+      item.append(bar);
+    }
+
+    els.sessionMetrics.append(item);
+  });
+}
+
 function renderSnapshot(snapshot) {
   const runtime = snapshot.runtime ?? {};
   const topDrives = snapshot.topDrives ?? [];
@@ -228,6 +291,7 @@ function renderSnapshot(snapshot) {
 
   renderDriveList(els.topDrives, topDrives);
   renderDriveList(els.allDrives, drives);
+  renderSession(runtime.activeSession ?? snapshot.activeSession ?? snapshot.session);
   renderCapabilities(snapshot.capabilities);
 }
 
